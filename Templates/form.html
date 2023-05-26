@@ -1,0 +1,42 @@
+<html>
+  <head>
+    <title>Form</title>
+    <style>
+      .container {
+        border: 1px solid black;
+        padding: 20px;
+        margin: 0 auto;
+        width: fit-content;
+      }
+      h1 {
+        font-size: 24px;
+        color: navy;
+        text-decoration: underline;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>User Sign Up</h1>
+      {% if error %}
+      <p class="error">{{ error }}</p>
+      {% endif %}
+      <form method="POST">
+        <label for="name">Name:</label>
+        <input type="text" name="name" id="name" required /><br /><br />
+        <label for="age">Age:</label>
+        <input type="text" name="age" id="age" required /><br /><br />
+        <label for="email">Email (*must be personal):</label>
+        <input type="text" name="email" id="email" required /><br /><br />
+        <label for="gender">Gender (M/F):</label>
+        <input type="text" name="gender" id="gender" required /><br /><br />
+        <label for="city">City:</label>
+        <input type="text" name="city" id="city" /><br /><br />
+        <label for="country">Country:</label>
+        <input type="text" name="country" id="country" /><br /><br />
+        <input type="submit" value="Submit" />
+      </form>
+    </div>
+  </body>
+</html>
