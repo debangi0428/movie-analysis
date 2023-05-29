@@ -1,103 +1,59 @@
 import random
+import re
+import pandas as pd
 import nltk
+from sklearn.metrics import accuracy_score
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from nltk import FreqDist
 from nltk.classify import NaiveBayesClassifier
 
+# Importing the training data
+imdb_data = pd.read_csv('IMDB Dataset.csv')
+train_reviews = imdb_data['review'][:40000]
+train_sentiments = imdb_data['sentiment'][:40000]
+test_reviews = imdb_data['review'][40000:]
+test_sentiments = imdb_data['sentiment'][40000:]
 
-class Preprocessor:
-    def __init__(self):
-        self.stopwords = set(stopwords.words('english'))
-        self.contractions = {
-                    "aren't": "are not",
-                    "can't": "can not",
-                    "couldn't": "could not",
-                    "didn't": "did not",
-                    "don't": "do not",
-                    "doesn't": "does not",
-                    "hadn't": "had not",
-                    "haven't": "have not",
-                    "he's": "he has",
-                    "he'll": "he will",
-                    "he'd": "he would",
-                    "here's": "here is",
-                    "I'm": "I am",
-                    "I've": "I have",
-                    "I'll": "I will",
-                    "I'd": "I had",
-                    "isn't": "is not",
-                    "it's": "it has",
-                    "it'll": "it will",
-                    "mustn't": "must not",
-                    "she's": "she has",
-                    "she'll": "she will",
-                    "she'd": "she had",
-                    "shouldn't": "should not",
-                    "that's": "that is",
-                    "there's": "there is",
-                    "they're": "they are",
-                    "they've": "they have",
-                    "they'll": "they will",
-                    "they'd": "they had",
-                    "wasn't": "was not",
-                    "we're": "we are",
-                    "we've": "we have",
-                    "we'll": "we will",
-                    "we'd": "we had",
-                    "weren't": "were not",
-                    "what's": "what is",
-                    "where's": "where is",
-                    "who's": "who is",
-                    "who'll": "who will",
-                    "won't": "will not",
-                    "wouldn't": "would not",
-                    "you're": "you are",
-                    "you've": "you have",
-                    "you'll": "you will",
-                    "you'd": "you had"
-                }
+# Preprocessing functions
+stopwords = set(stopwords.words('english'))
 
-    def preprocess_text(self, text):
-        # Tokenization and contraction expansion
-        tokens = word_tokenize(text)
-        tokens = [self.contractions.get(token, token) for token in tokens]
+def preprocess_text(text):
+    # Remove square brackets and contents within them
+    text = re.sub('\[[^]]*\]', '', text)
 
-        # Removing stopwords and non-alphanumeric characters
-        clean_tokens = [
-            token.lower() for token in tokens
-            if token.isalnum() and token.lower() not in self.stopwords
-        ]
+    # Tokenize the text
+    tokens = word_tokenize(text.lower())
 
-        return clean_tokens
+    # Remove stopwords
+    tokens = [token for token in tokens if token.lower() not in stopwords]
 
+    return tokens
 
-preprocessor = Preprocessor()
+# Preprocess the training and test reviews
+train_features = [(preprocess_text(review), sentiment) for review, sentiment in zip(train_reviews, train_sentiments)]
+test_features = [(preprocess_text(review), sentiment) for review, sentiment in zip(test_reviews, test_sentiments)]
 
-def extract_features(text):
-    return {word: True for word in text}
+# Define the feature extraction function
+def extract_features(words):
+    return dict([(word, True) for word in words])
 
+# Extract features from the training and test data
+train_set = [(extract_features(review), sentiment) for review, sentiment in train_features]
+test_set = [(extract_features(review), sentiment) for review, sentiment in test_features]
 
-reviews = []
-with open('IMDB Dataset.csv', 'r') as file:
-    for line in file:
-        line = line.strip()
-        parts = line.split(',')
-        if len(parts) != 2:
-            continue
-        review = parts[0].replace(",", "")  # Remove commas within the review
-        sentiment = parts[1]
-        preprocessed_review = preprocessor.preprocess_text(review)
-        reviews.append((preprocessed_review, sentiment))
+# Train the NaiveBayes classifier
+classifier = NaiveBayesClassifier.train(train_set)
 
-train_size = int(0.8 * len(reviews))
-train_reviews = reviews[:train_size]
-test_reviews = reviews[train_size:]
+# Evaluate the model on the test data
+predictions = [classifier.classify(review) for review, _ in test_set]
+accuracy = accuracy_score(test_sentiments, predictions)
 
-train_features = [(extract_features(review), sentiment) for (review, sentiment) in train_reviews]
-test_features = [(extract_features(review), sentiment) for (review, sentiment) in test_reviews]
+# testing a review in the model
+features, sentiment = test_set[10]
+prediction = classifier.classify(features)
+print("Review:", test_reviews.iloc[10])
+print("Predicted Sentiment:", prediction)
+print("Actual Sentiment:", sentiment)
+print("-----------------------")
 
-classifier = NaiveBayesClassifier.train(train_features)
-
-accuracy = nltk.classify.accuracy(classifier, test_features)
-print('Accuracy:', accuracy)
+print("Accuracy:", accuracy)
