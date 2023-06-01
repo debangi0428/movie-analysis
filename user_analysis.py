@@ -95,6 +95,24 @@ print("Top-rated movies:\n", top_rated_movies)
 age_distribution = data['age'].value_counts().sort_index()
 print("Age distribution of users:\n", age_distribution)
 
+genre_popularity = data.groupby('gender')[genre_columns].sum()
+
+#genre with the highest sum for males and females
+most_popular_genre_male = genre_popularity.loc['M'].idxmax()
+most_popular_genre_female = genre_popularity.loc['F'].idxmax()
+
+print("Most popular genre for males:", most_popular_genre_male)
+print("Most popular genre for females:", most_popular_genre_female)
+
+drama_movies = data[data['Drama'] == 1]
+
+#number of males and females who rated drama movies
+males_rated_drama = drama_movies[drama_movies['gender'] == 'M']['gender'].count()
+females_rated_drama = drama_movies[drama_movies['gender'] == 'F']['gender'].count()
+
+print("Number of males who rated drama movies:", males_rated_drama)
+print("Number of females who rated drama movies:", females_rated_drama)
+
 a = open("u.user","r")
 
 lines = []
