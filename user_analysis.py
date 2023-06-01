@@ -1,52 +1,5 @@
 import pandas as pd
-
-# a = open("u.user","r")
-
-# lines = []
-
-# for l in a:
-#   lines.append(l.split("|"))
-
-# # print(lines)
-
-# df = pd.DataFrame(lines,columns=['userId','age','gender','occupation','zipCode'])
-
-# df['age'] = df['age'].astype('int')
-# df.describe()
-# df.shape
-
-# df1 = df[df['age'] >= 20 ]
-
-# df2 = df1[df1['age']<=60]
-
-# df2.describe()
-
-# df2.head()
-
-# b = open("u.data","r")
-# b_lines = []
-# for l in b:
-#   b_lines.append(l.split("\t"))
-
-# rating_df = pd.DataFrame(b_lines,columns=['userId','titleId','rating','timeStamp'])
-# rating_df_1 = rating_df[rating_df['userId'].isin(df2['userId']) ]
-
-# c = open("u.item","r",encoding="ISO-8859-1")
-
-# cols = ['id','title','releaseDate','videoReleaseDate','imdbURL', "unknown" ,"Action" , "Adventure" , "Animation" , "Childrens" , "Comedy" , "Crime" , "Documentary" , "Drama" , "Fantasy" ,
-#         "Film-Noir" , "Horror" , "Musical" , "Mystery" , "Romance" , "Sci-Fi" ,
-#         "Thriller" , "War" , "Western"]
-
-# c_lines = []
-
-# for l in c:
-#   c_lines.append(l.strip().split("|"))
-
-# df = pd.DataFrame(c_lines,columns=cols)
-
-# df[(df['Adventure']=='1') & (df['Action']=='1')]
-
-
+import matplotlib.pyplot as plt
 
 ### from scratch
 
@@ -70,7 +23,7 @@ data = pd.merge(pd.merge(ratings, users), movies)
 
 # Check for missing values
 print(data.isnull().sum())
-#IMDn_URL is missing for 13
+#IMDB_URL is missing for 13
 # release date is missing for 9
 
 # Drop unnecessary columns
@@ -82,6 +35,12 @@ data['timestamp'] = pd.to_datetime(data['timestamp'], unit='s')
 genre_columns = ['Action', 'Adventure', 'Animation', 'Children', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy', 'Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western']
 genre_popularity = data.groupby('gender')[genre_columns].sum().sum().sort_values(ascending=False)
 print("Most popular movie genres:\n", genre_popularity)
+
+genre_popularity.plot(kind='bar', figsize=(10, 6))
+plt.title('Genre Popularity')
+plt.xlabel('Genre')
+plt.ylabel('Number of Ratings')
+plt.show()
 
 average_ratings = data.groupby('gender')['rating'].mean()
 print("Average ratings by gender:\n", average_ratings)
