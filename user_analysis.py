@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.metrics.pairwise import cosine_similarity
 
 ### from scratch
 
@@ -93,5 +94,48 @@ df1 = df[df['age'] >= 20 ]
 
 df2 = df1[df1['age']<=60]
 
+
+merged_data = pd.merge(ratings, movies, on='movie_id')
+
+users_merged = pd.merge(merged_data, users, on='user_id')
+
+print(merged_data.head())
+print(users_merged.head())
+
+# two csv convert to one csv
+users_merged.to_csv("final_data.csv")
+
+ratings_matrix = users_merged.pivot_table(index='movie_id', columns='user_id', values='rating')
+ratings_matrix = ratings_matrix.fillna(0)
+
+user_similarity = cosine_similarity(ratings_matrix)
+new_user_ratings = {'user_id': [], 'rating': []}
+new_user_ratings['user_id'].extend([1001, 2003, 3005, 8472, 6790, 6500, 9100])  # Add movie IDs
+new_user_ratings['rating'].extend([4, 3, 2, 3, 5, 3, 4])  # Add corresponding ratings
+
+new_user_row = pd.DataFrame(new_user_ratings)
+new_user_row['movie_id'] = 'new_user'
+new_user_matrix = new_user_row.pivot_table(index='movie_id', columns='user_id', values='rating', fill_value=0)
+
+updated_ratings_matrix = pd.concat([ratings_matrix, new_user_matrix])
+updated_ratings_matrix = updated_ratings_matrix.apply(pd.to_numeric, errors='coerce')
+updated_ratings_matrix = updated_ratings_matrix.fillna(0)
+
+item_similarity = cosine_similarity(updated_ratings_matrix.T)
+
+##new line
+
+# hybrid_scores = user_similarity[-1].dot(item_similarity.T)
+hybrid_scores = user_similarity[-1].reshape(1, -1).dot(item_similarity.T)
+hybrid_scores /= user_similarity[-1].sum()
+# Get the indices of the top recommended movies
+top_movie_indices = hybrid_scores.argsort()[-20:]
+# Get the movie IDs of the top recommended movies
+top_movie_ids = updated_ratings_matrix.columns[top_movie_indices]
+# Print the top recommended movies
+recommended_movies = movies[movies['item'].isin(top_movie_ids)]['movie title'].unique()
+print("Recommended Movies:")
+for movie in recommended_movies:
+  print(movie)
 
 
