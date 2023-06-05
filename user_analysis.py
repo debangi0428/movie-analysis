@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -41,7 +42,7 @@ genre_popularity.plot(kind='bar', figsize=(10, 6))
 plt.title('Genre Popularity')
 plt.xlabel('Genre')
 plt.ylabel('Number of Ratings')
-plt.show()
+# plt.show()
 
 average_ratings = data.groupby('gender')['rating'].mean()
 print("Average ratings by gender:\n", average_ratings)
@@ -109,33 +110,30 @@ ratings_matrix = users_merged.pivot_table(index='movie_id', columns='user_id', v
 ratings_matrix = ratings_matrix.fillna(0)
 
 user_similarity = cosine_similarity(ratings_matrix)
-new_user_ratings = {'user_id': [], 'rating': []}
-new_user_ratings['user_id'].extend([1001, 2003, 3005, 8472, 6790, 6500, 9100])  # Add movie IDs
+new_user_ratings = {'movie_id': [], 'rating': []}
+new_user_ratings['movie_id'].extend([1001, 2003, 3005, 8472, 6790, 6500, 9100])  # Add movie IDs
 new_user_ratings['rating'].extend([4, 3, 2, 3, 5, 3, 4])  # Add corresponding ratings
 
-new_user_row = pd.DataFrame(new_user_ratings)
-new_user_row['movie_id'] = 'new_user'
-new_user_matrix = new_user_row.pivot_table(index='movie_id', columns='user_id', values='rating', fill_value=0)
+new_user_df = pd.DataFrame(new_user_ratings)
 
-updated_ratings_matrix = pd.concat([ratings_matrix, new_user_matrix])
-updated_ratings_matrix = updated_ratings_matrix.apply(pd.to_numeric, errors='coerce')
-updated_ratings_matrix = updated_ratings_matrix.fillna(0)
+# Concatenate new user ratings with existing data
+users_merged_with_new_user = pd.concat([users_merged, new_user_df])
 
-item_similarity = cosine_similarity(updated_ratings_matrix.T)
+new_user_ratings_matrix = users_merged_with_new_user.pivot_table(index='user_id', columns='movie_id', values='rating', fill_value=0)
 
-##new line
+# Transpose new_user_ratings_matrix to align dimensions for dot product
+new_user_ratings_matrix = new_user_ratings_matrix.T
 
-# hybrid_scores = user_similarity[-1].dot(item_similarity.T)
-hybrid_scores = user_similarity[-1].reshape(1, -1).dot(item_similarity.T)
-hybrid_scores /= user_similarity[-1].sum()
-# Get the indices of the top recommended movies
-top_movie_indices = hybrid_scores.argsort()[-20:]
-# Get the movie IDs of the top recommended movies
-top_movie_ids = updated_ratings_matrix.columns[top_movie_indices]
-# Print the top recommended movies
-recommended_movies = movies[movies['item'].isin(top_movie_ids)]['movie title'].unique()
-print("Recommended Movies:")
-for movie in recommended_movies:
-  print(movie)
+# Compute item similarity matrix using complete ratings matrix
+item_similarity = cosine_similarity(ratings_matrix.T)
 
+# Compute hybrid scores for the new user using new_user_ratings_matrix and item_similarity
+hybrid_scores = new_user_ratings_matrix.dot(item_similarity)
 
+# Sort the hybrid scores and get the indices of the top recommendations
+top_indices = np.argsort(hybrid_scores.values)[-1][::-1][:10]  # Retrieve recommendations for the new user
+
+top_movies = movies[movies['movie_id'].isin(top_indices)]['title'].unique()
+
+print("Top Movie Recommendations:")
+print(top_movies)
