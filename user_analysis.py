@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from surprise import Dataset, Reader, KNNBasic
+from surprise.model_selection import train_test_split
 
 ### from scratch
 
@@ -106,34 +109,107 @@ print(users_merged.head())
 # two csv convert to one csv
 users_merged.to_csv("final_data.csv")
 
-ratings_matrix = users_merged.pivot_table(index='movie_id', columns='user_id', values='rating')
-ratings_matrix = ratings_matrix.fillna(0)
+data_df = pd.read_csv('final_data.csv')
 
-user_similarity = cosine_similarity(ratings_matrix)
-new_user_ratings = {'movie_id': [], 'rating': []}
-new_user_ratings['movie_id'].extend([1001, 2003, 3005, 8472, 6790, 6500, 9100])  # Add movie IDs
-new_user_ratings['rating'].extend([4, 3, 2, 3, 5, 3, 4])  # Add corresponding ratings
+# Create a TF-IDF vectorizer
+vectorizer = TfidfVectorizer(stop_words='english')
 
-new_user_df = pd.DataFrame(new_user_ratings)
+# Generate the TF-IDF matrix using movie titles
+tfidf_matrix = vectorizer.fit_transform(data_df['title'])
 
-# Concatenate new user ratings with existing data
-users_merged_with_new_user = pd.concat([users_merged, new_user_df])
 
-new_user_ratings_matrix = users_merged_with_new_user.pivot_table(index='user_id', columns='movie_id', values='rating', fill_value=0)
+# Function to get movie recommendations for a user
+def get_user_recommendations_content_by_age(filtered_users, user_id, tfidf_matrix, data_df):
+    
+    # Get the movies rated by the user
+    user_movies = data_df[data_df['user_id'] == user_id]['movie_id']
+    
+    # Create a set of movies already rated by the user
+    rated_movies = set(user_movies)
+    
+    # Initialize an empty set to store recommended movies
+    recommended_movies = set()
 
-# Transpose new_user_ratings_matrix to align dimensions for dot product
-new_user_ratings_matrix = new_user_ratings_matrix.T
+    if user_id in filtered_users['user_id'].values:
+        for movie_id in user_movies:
+            idx = data_df[(data_df['movie_id'] == movie_id) & (data_df['user_id'].isin(filtered_users['user_id']))].index[0]
 
-# Compute item similarity matrix using complete ratings matrix
-item_similarity = cosine_similarity(ratings_matrix.T)
+            # Calculate the pairwise cosine similarity between the current movie and all other movies
+            similarity_scores = cosine_similarity(tfidf_matrix[idx], tfidf_matrix).flatten()
 
-# Compute hybrid scores for the new user using new_user_ratings_matrix and item_similarity
-hybrid_scores = new_user_ratings_matrix.dot(item_similarity)
+            # Get the indices of movies sorted by similarity scores in descending order
+            sorted_indices = similarity_scores.argsort()[::-1]
 
-# Sort the hybrid scores and get the indices of the top recommendations
-top_indices = np.argsort(hybrid_scores.values)[-1][::-1][:10]  # Retrieve recommendations for the new user
+            # Get the top 5 similar movies (excluding the input movie itself)
+            top_similar_movies = sorted_indices[1:6]
 
-top_movies = movies[movies['movie_id'].isin(top_indices)]['title'].unique()
+            # Get the movie_ids of the top similar movies
+            similar_movies = data_df['movie_id'].iloc[top_similar_movies].values
 
-print("Top Movie Recommendations:")
-print(top_movies)
+            # Add the similar movies to the recommended list (excluding those already rated by the user)
+            recommended_movies.update([movie for movie in similar_movies if movie not in rated_movies])
+        
+        return list(recommended_movies)[:5]  # Return the top 5 recommended movie_ids
+    else:
+        return None
+
+filtered_users = users_merged[(users_merged['age'] >= 18) & (users_merged['age'] <= 40)]
+input_user_id = 160
+if input_user_id in filtered_users['user_id'].values:
+    recommendations = get_user_recommendations_content_by_age(filtered_users, input_user_id, tfidf_matrix, data_df)
+    print("Recommended movies for user with ID '{}':".format(input_user_id))
+    for movie_id in recommendations:
+        movie_title = data_df[data_df['movie_id'] == movie_id]['title'].iloc[0]
+        print(movie_title)
+else:
+    print("Input user ID '{}' not found in the specified age range.".format(input_user_id))
+
+
+
+# Create a Surprise Dataset from the DataFrame
+reader = Reader(rating_scale=(1, 5))
+data = Dataset.load_from_df(data_df[['user_id', 'movie_id', 'rating']], reader)
+
+# Split the data into train and test sets
+trainset, testset = train_test_split(data, test_size=0.2, random_state=42)
+
+# Define and train the user-based collaborative filtering model
+model = KNNBasic(sim_options={'user_based': True})
+model.fit(trainset)
+
+# Function to get movie recommendations for a user
+def get_user_recommendations_collabrative(filtered_users, user_id, model, data_df):
+    # Get all unique movie IDs
+    if user_id in filtered_users['user_id'].values:
+        all_movie_ids = data_df['movie_id'].unique()
+        
+        # Get the movie IDs not rated by the user
+        user_rated_movies = data_df[data_df['user_id'] == user_id]['movie_id']
+        user_unrated_movies = [movie_id for movie_id in all_movie_ids if movie_id not in user_rated_movies]
+        
+        # Predict ratings for the unrated movies
+        predictions = [model.predict(user_id, movie_id) for movie_id in user_unrated_movies]
+        
+        # Sort the predictions by predicted rating in descending order
+        sorted_predictions = sorted(predictions, key=lambda x: x.est, reverse=True)
+        
+        # Get the top 5 recommended movie IDs
+        recommended_movies = [pred.iid for pred in sorted_predictions[:5]]
+    
+        return recommended_movies
+    
+    else:
+        return None
+
+filtered_users = users_merged[(users_merged['age'] >= 18) & (users_merged['age'] <= 40)]
+input_user_id = 417
+if input_user_id in filtered_users['user_id'].values:
+    recommendations = get_user_recommendations_collabrative(filtered_users, input_user_id, model, data_df)
+    print("Recommended movies for user with ID '{}':".format(input_user_id))
+    for movie_id in recommendations:
+        movie_title = data_df[data_df['movie_id'] == movie_id]['title'].iloc[0]
+        print(movie_title)
+else:
+    print("Input user ID '{}' not found in the specified age range.".format(input_user_id))
+
+
