@@ -1,6 +1,14 @@
 from flask import Flask, render_template, request
 from datetime import datetime
 import re
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from surprise import Dataset, Reader, KNNBasic
+from surprise.model_selection import train_test_split
+import sqlite3
 
 # Create the Flask application
 app = Flask(__name__)
@@ -9,10 +17,63 @@ app = Flask(__name__)
 user_data = []
 
 # Define a route and its corresponding function
+
+data_df = pd.read_csv('final_data.csv')
+
+# Create a TF-IDF vectorizer
+vectorizer = TfidfVectorizer(stop_words='english')
+
+# Generate the TF-IDF matrix using movie titles
+tfidf_matrix = vectorizer.fit_transform(data_df['title'])
+
+# Create a Surprise Dataset from the DataFrame
+reader = Reader(rating_scale=(1, 5))
+data = Dataset.load_from_df(data_df[['user_id', 'movie_id', 'rating']], reader)
+
+# Split the data into train and test sets
+trainset, testset = train_test_split(data, test_size=0.2, random_state=42)
+
+# Define and train the user-based collaborative filtering model
+model = KNNBasic(sim_options={'user_based': True})
+model.fit(trainset)
+
+def get_user_recommendations_collabrative(age, data_df):
+
+    #create new user id after all the existing user
+    new_user_id = data_df['user_id'].max() + 1
+
+    print({'user_id': [new_user_id],
+            'age': [age] })
+
+    new_user_ratings = pd.DataFrame({'user_id': [new_user_id],
+                                     'age': [age] })
+    
+        
+    updated_data_df = pd.concat([data_df, new_user_ratings], ignore_index=True)
+
+    # Create a Surprise Dataset from the updated DataFrame
+    updated_data = Dataset.load_from_df(updated_data_df[['user_id', 'movie_id', 'rating']], reader)
+
+    # Train the model with the updated data
+    trainset_new = updated_data.build_full_trainset()
+    model_new = KNNBasic(sim_options={'user_based': True})
+    model_new.fit(trainset_new)
+
+    predictions = [model_new.predict(new_user_id, movie_id).est for movie_id in updated_data_df['movie_id']]
+
+    # Sort the predictions by predicted rating in descending order
+    sorted_predictions = sorted(zip(updated_data_df['movie_id'], predictions), key=lambda x: x[1], reverse=True)
+    
+    # Get the top 5 recommended movie IDs
+    recommended_movies = ','.join([str(movie_id) for movie_id, _ in sorted_predictions[:5]])
+    
+    return recommended_movies
+
+# render recs to template, call this after 
 @app.route('/response')
-def response(name, age):
-    current_time = datetime.now().time()
-    return render_template('./index.html', user=name, time=current_time, age=age)
+def response(recommendations):
+    # current_time = datetime.now().time()
+    return "<h1>"+recommendations+"</h1>"
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -34,23 +95,29 @@ def index():
         if int(age) < 18:
             error_message = "You must be at least 18 years old."
             return render_template("./form.html", error=error_message)
+        
+        # conn = sqlite3.connect('new_user_database.db')
+        # cursor = conn.cursor()
+
+        # cursor.execute('''CREATE TABLE IF NOT EXISTS users
+        #                 (name TEXT, age INTEGER)''')
 
 
-        # Store the form data in the list
-        user_data.append({
-            'name': name,
-            'age': age,
-            'email': email,
-            'gender': gender,
-            'city': city,
-            'country': country
-        })
+        # cursor.execute("INSERT INTO users (name, age) VALUES (?, ?)", (name, age))
 
-        # Process the input data
-        result = "Hello, " + name + "! Welcome to the home page."
-        return result
-        # Return the response
-        # return response(name)
+        # conn.commit()
+        # conn.close()
+
+        # conn = sqlite3.connect('new_user_database.db')
+        # cursor = conn.cursor()
+        # cursor.execute("SELECT * FROM users WHERE name = ? AND age = ?", (name, age))
+        # user = cursor.fetchone()
+
+        recommendations = get_user_recommendations_collabrative(age, data_df)
+        if recommendations:
+            return response(recommendations)
+
+
 
     # If it's a GET request, render an HTML form for input
     return render_template("./form.html")
