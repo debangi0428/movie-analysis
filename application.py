@@ -65,15 +65,30 @@ def get_user_recommendations_collabrative(age, data_df):
     sorted_predictions = sorted(zip(updated_data_df['movie_id'], predictions), key=lambda x: x[1], reverse=True)
     
     # Get the top 5 recommended movie IDs
-    recommended_movies = ','.join([str(movie_id) for movie_id, _ in sorted_predictions[:5]])
+    # recommended_movies = ','.join([str(movie_id) for movie_id, _ in sorted_predictions[:5]])
+
+    recommended_movies = sorted_predictions[:5]
+
+    # Get the movie titles and IMDB URLs for the recommended movie IDs
+    recommended_movies_info = []
+    for movie_id, _ in recommended_movies:
+        movie_info = data_df[data_df['movie_id'] == movie_id][['movie_id','title', 'IMDb_URL']].iloc[0]
+        recommended_movies_info.append((movie_info['movie_id'], movie_info['title'], movie_info['IMDb_URL']))
+
+    return recommended_movies_info
     
-    return recommended_movies
+    # return recommended_movies
 
 # render recs to template, call this after 
 @app.route('/response')
 def response(recommendations):
-    # current_time = datetime.now().time()
-    return "<h1>"+recommendations+"</h1>"
+    # return "<h1>"+recommendations+"</h1>"
+    table_html = "<table>"
+    table_html += "<tr><th>Movie ID</th><th>Title</th><th>IMDb URL</th></tr>"
+    for movie_id, title, IMDb_URL in recommendations:
+        table_html += f"<tr><td>{movie_id}</td><td>{title}</td><td><a href='{IMDb_URL}'>{IMDb_URL}</a></td></tr>"
+    table_html += "</table>"
+    return table_html
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
