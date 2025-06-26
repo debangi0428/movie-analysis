@@ -87,8 +87,16 @@ def get_user_recommendations_collabrative(age, gender, occupation, movie_id, rat
 
     recommended_movies_info = []
     for movie_id in recommended_movies:
-        movie_info = data_df[data_df['movie_id'] == movie_id][['movie_id', 'title', 'IMDb_URL']].iloc[0]
-        recommended_movies_info.append((movie_info['movie_id'], movie_info['title'], movie_info['IMDb_URL']))
+        # movie_info = data_df[data_df['movie_id'] == movie_id][['movie_id', 'title', 'IMDb_URL']].iloc[0]
+        # recommended_movies_info.append((movie_info['movie_id'], movie_info['title'], movie_info['IMDb_URL']))
+        movie_row = data_df[data_df['movie_id'] == movie_id].iloc[0]
+        avg_rating = round(data_df[data_df['movie_id'] == movie_id]['rating'].mean(), 2)
+
+        # Get genres (columns where the value is 1)
+        genres = [genre for genre in data_df.columns[-18:] if movie_row[genre] == 1]
+        genre_str = ', '.join(genres)
+
+        recommended_movies_info.append((movie_row['title'], avg_rating, genre_str))
 
     return recommended_movies_info
     
