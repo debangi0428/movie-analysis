@@ -77,8 +77,20 @@
                 <label for="occupation">Occupation:</label><br>
                 <input type="text" name="occupation" id="occupation" /><br /><br />
 
-                <label for="rating">What would you rate "Star Wars (1977)" on a scale of 1-5:</label><br>
-                <input type="text" name="rating" id="rating" /><br /><br />
+                <!-- <label for="rating">What would you rate "Star Wars (1977)" on a scale of 1-5:</label><br>
+                <input type="text" name="rating" id="rating" /><br /><br /> -->
+
+                <label for="movie_id">Choose a movie to rate:</label><br>
+                <select name="movie_id" id="movie_id" required>
+                    <option value="50">Star Wars (1977)</option>
+                    <option value="127">The Godfather (1972)</option>
+                    <option value="257">Men in Black (1997)</option>
+                    <option value="69">Forrest Gump (1994)</option>
+                    <option value="95">Aladdin (1992)</option>
+                </select><br /><br />
+
+                <label for="rating">Your rating on a scale of 1-5:</label><br>
+                <input type="text" name="rating" id="rating" required /><br /><br />
 
                 <input type="submit" value="Submit" />
             </div>
