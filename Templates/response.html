@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Top 5 Movie Recommendations</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/">Home</a>
+    </div>
+    <div class="container">
+        <h1>Your Top 5 Movie Recommendations</h1>
+        <div class="movie-grid">
+            {% for movie in recommendations %}
+            <div class="movie-card">
+                <h3>{{ movie[1] }}</h3>
+                <p><strong>Movie ID:</strong> {{ movie[0] }}</p>
+                <p><a href="{{ movie[2] }}" target="_blank">Watch on IMDb</a></p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
