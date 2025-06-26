@@ -54,7 +54,7 @@ def get_user_recommendations_collabrative(age, gender, occupation, rating, data_
                                      'age': [age],
                                      'gender': [gender],
                                      'occupation': [occupation],
-                                     'movie_id': [313],
+                                     'movie_id': [movie_id],
                                      'rating': [rating] })
     
         
@@ -80,7 +80,7 @@ def get_user_recommendations_collabrative(age, gender, occupation, rating, data_
     # recommended_movies = ','.join([str(movie_id) for movie_id, _ in sorted_predictions[:5]])
     recommended_movies = []
     for movie_id, _ in sorted_predictions:
-        if movie_id != 313 and movie_id not in recommended_movies:
+        if movie_id != 50 and movie_id not in recommended_movies:
             recommended_movies.append(movie_id)
             if len(recommended_movies) == 5:
                 break
@@ -95,15 +95,19 @@ def get_user_recommendations_collabrative(age, gender, occupation, rating, data_
     # return recommended_movies
 
 # render recs to template, call this after 
+# @app.route('/response')
+# def response(recommendations):
+#     # return "<h1>"+recommendations+"</h1>"
+#     table_html = "<table>"
+#     table_html += "<tr><th>Movie ID</th><th>Title</th><th>IMDb URL</th></tr>"
+#     for movie_id, title, IMDb_URL in recommendations:
+#         table_html += f"<tr><td>{movie_id}</td><td>{title}</td><td><a href='{IMDb_URL}'>{IMDb_URL}</a></td></tr>"
+#     table_html += "</table>"
+#     return table_html
+
 @app.route('/response')
 def response(recommendations):
-    # return "<h1>"+recommendations+"</h1>"
-    table_html = "<table>"
-    table_html += "<tr><th>Movie ID</th><th>Title</th><th>IMDb URL</th></tr>"
-    for movie_id, title, IMDb_URL in recommendations:
-        table_html += f"<tr><td>{movie_id}</td><td>{title}</td><td><a href='{IMDb_URL}'>{IMDb_URL}</a></td></tr>"
-    table_html += "</table>"
-    return table_html
+    return render_template("response.html", recommendations=recommendations)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -126,7 +130,9 @@ def index():
             error_message = "You must be at least 18 years old."
             return render_template("./form.html", error=error_message)
 
-        recommendations = get_user_recommendations_collabrative(age, gender, occupation, rating, data_df)
+        # recommendations = get_user_recommendations_collabrative(age, gender, occupation, rating, data_df)
+        movie_id = int(request.form.get('movie_id'))
+        recommendations = get_user_recommendations_collabrative(age, gender, occupation, movie_id, rating, data_df)
         if recommendations:
             return response(recommendations)
 
