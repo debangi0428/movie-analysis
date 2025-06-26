@@ -42,7 +42,7 @@ trainset = data.build_full_trainset()
 model = KNNBasic(sim_options={'user_based': True})
 model.fit(trainset)
 
-def get_user_recommendations_collabrative(age, gender, occupation, rating, data_df):
+def get_user_recommendations_collabrative(age, gender, occupation, movie_id, rating, data_df):
 
     #create new user id after all the existing user
     new_user_id = data_df['user_id'].max() + 1
