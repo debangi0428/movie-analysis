@@ -1,4 +1,4 @@
-<html>
+<!-- <html>
   <head>
     <title>Form</title>
     <style>
@@ -33,10 +33,56 @@
         <input type="text" name="gender" id="gender" required /><br /><br />
         <label for="occupation">Occupation:</label>
         <input type="text" name="occupation" id="occupation" /><br /><br />
-        <label for="rating">What would you rate "Titanic" on a scale 1-5:</label>
+        <label for="rating">What would you rate "Star Wars (1977)" on a scale of 1-5:</label>
         <input type="text" name="rating" id="rating" /><br /><br />
         <input type="submit" value="Submit" />
       </form>
     </div>
   </body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Sign Up</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="/">Home</a>
+        <a href="/form">Sign Up</a>
+    </div>
+
+    <div class="container">
+        <h1>User Sign Up</h1>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="POST">
+            <div class="movie-card">
+                <label for="name">Name:</label><br>
+                <input type="text" name="name" id="name" required /><br /><br />
+
+                <label for="age">Age:</label><br>
+                <input type="text" name="age" id="age" required /><br /><br />
+
+                <label for="email">Email (*must be gmail):</label><br>
+                <input type="text" name="email" id="email" required /><br /><br />
+
+                <label for="gender">Gender (M/F):</label><br>
+                <input type="text" name="gender" id="gender" required /><br /><br />
+
+                <label for="occupation">Occupation:</label><br>
+                <input type="text" name="occupation" id="occupation" /><br /><br />
+
+                <label for="rating">What would you rate "Star Wars (1977)" on a scale of 1-5:</label><br>
+                <input type="text" name="rating" id="rating" /><br /><br />
+
+                <input type="submit" value="Submit" />
+            </div>
+        </form>
+    </div>
+</body>
 </html>
