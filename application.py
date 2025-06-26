@@ -42,7 +42,7 @@ trainset = data.build_full_trainset()
 model = KNNBasic(sim_options={'user_based': True})
 model.fit(trainset)
 
-def get_user_recommendations_collabrative(age, gender, occupation, movie_id, rating, data_df):
+def get_user_recommendations_collabrative(age, gender, occupation, movie_id_input, rating, data_df):
 
     #create new user id after all the existing user
     new_user_id = data_df['user_id'].max() + 1
@@ -71,19 +71,51 @@ def get_user_recommendations_collabrative(age, gender, occupation, movie_id, rat
     model_new.fit(trainset_new)
     # model_new.train(trainset_new)
 
-    predictions = [model_new.predict(new_user_id, movie_id).est for movie_id in updated_data_df['movie_id']]
+    # predictions = [model_new.predict(new_user_id, movie_id).est for movie_id in updated_data_df['movie_id']]
+    collab_predictions = {}
+    for movie_id in data_df['movie_id'].unique():
+        if movie_id != movie_id_input:
+            collab_predictions[movie_id] = model_new.predict(new_user_id, movie_id).est
 
-    # Sort the predictions by predicted rating in descending order
-    sorted_predictions = sorted(zip(updated_data_df['movie_id'], predictions), key=lambda x: x[1], reverse=True)
+    # Content-based filtering using tfidf
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf_vectorizer.fit_transform(data_df['title'])
+
+    # Map movie_id to index in tfidf_matrix
+    movie_idx_map = dict(zip(data_df['movie_id'], data_df.index))
+    target_idx = movie_idx_map[movie_id_input]
+    cosine_sim = cosine_similarity(tfidf_matrix[target_idx], tfidf_matrix).flatten()
+
+    # Combine both into hybrid score
+    hybrid_scores = []
+    for movie_id, collab_score in collab_predictions.items():
+        idx = movie_idx_map[movie_id]
+        content_score = cosine_sim[idx]
+        hybrid = 0.4 * content_score + 0.6 * collab_score  # adjust weights as needed
+        hybrid_scores.append((movie_id, hybrid))
+
+    # Sort by hybrid score
+    hybrid_scores = sorted(hybrid_scores, key=lambda x: x[1], reverse=True)
 
     # Get the top 5 recommended movie IDs
-    # recommended_movies = ','.join([str(movie_id) for movie_id, _ in sorted_predictions[:5]])
     recommended_movies = []
-    for movie_id, _ in sorted_predictions:
-        if movie_id != 50 and movie_id not in recommended_movies:
+    for movie_id, _ in hybrid_scores:
+        if movie_id not in recommended_movies:
             recommended_movies.append(movie_id)
             if len(recommended_movies) == 5:
                 break
+
+    # # Sort the predictions by predicted rating in descending order
+    # sorted_predictions = sorted(zip(updated_data_df['movie_id'], predictions), key=lambda x: x[1], reverse=True)
+
+    # # Get the top 5 recommended movie IDs
+    # # recommended_movies = ','.join([str(movie_id) for movie_id, _ in sorted_predictions[:5]])
+    # recommended_movies = []
+    # for movie_id, _ in sorted_predictions:
+    #     if movie_id != 50 and movie_id not in recommended_movies:
+    #         recommended_movies.append(movie_id)
+    #         if len(recommended_movies) == 5:
+    #             break
 
     recommended_movies_info = []
     for movie_id in recommended_movies:
@@ -127,6 +159,7 @@ def index():
         gender = request.form.get('gender')
         occupation = request.form.get('occupation')
         rating = int(request.form.get('rating'))
+        movie_id_input = int(request.form.get("movie_id"))
 
         # Validate email address
         email_pattern = r'^[a-zA-Z0-9_.+-]+@gmail\.com$'
@@ -139,8 +172,8 @@ def index():
             return render_template("./form.html", error=error_message)
 
         # recommendations = get_user_recommendations_collabrative(age, gender, occupation, rating, data_df)
-        movie_id = int(request.form.get('movie_id'))
-        recommendations = get_user_recommendations_collabrative(age, gender, occupation, movie_id, rating, data_df)
+        # movie_id = int(request.form.get('movie_id'))
+        recommendations = get_user_recommendations_collabrative(age, gender, occupation, movie_id_input, rating, data_df)
         if recommendations:
             return response(recommendations)
 
