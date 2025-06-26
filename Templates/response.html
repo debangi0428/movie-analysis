@@ -13,9 +13,9 @@
         <div class="movie-grid">
             {% for movie in recommendations %}
             <div class="movie-card">
-                <h3>{{ movie[1] }}</h3>
-                <p><strong>Movie ID:</strong> {{ movie[0] }}</p>
-                <p><a href="{{ movie[2] }}" target="_blank">Watch on IMDb</a></p>
+                <h3>{{ movie[0] }}</h3>
+                <p><strong>Avg Rating:</strong> {{ movie[1] }}</p>
+                <p><strong>Genres:</strong> {{ movie[2] }}</p>
             </div>
             {% endfor %}
         </div>
